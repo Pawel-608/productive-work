@@ -1,0 +1,9 @@
+{
+  "name": "focus-timer",
+  "version": "1.0.0",
+  "description": "A focus timer app for tracking work intervals",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  }
+}

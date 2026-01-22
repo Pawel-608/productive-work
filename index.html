@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Adobe Spectrum colors */
+            --adobe-red: #E34850;
+            --adobe-red-dark: #D7373F;
+            --adobe-orange: #E68619;
+            --adobe-yellow: #D7B600;
+            --adobe-chartreuse: #85D044;
+            --adobe-celery: #44B556;
+            --adobe-green: #2D9D78;
+            --adobe-seafoam: #1B959A;
+            --adobe-cyan: #16878C;
+            --adobe-blue: #2680EB;
+            --adobe-indigo: #6767EC;
+            --adobe-purple: #9256D9;
+            --adobe-fuchsia: #C038CC;
+            --adobe-magenta: #E2499D;
+
+            /* Gray scale (Adobe Spectrum dark) */
+            --gray-50: #FFFFFF;
+            --gray-75: #FAFAFA;
+            --gray-100: #F5F5F5;
+            --gray-200: #EAEAEA;
+            --gray-300: #E1E1E1;
+            --gray-400: #CACACA;
+            --gray-500: #B3B3B3;
+            --gray-600: #8E8E8E;
+            --gray-700: #6E6E6E;
+            --gray-800: #4B4B4B;
+            --gray-900: #2C2C2C;
+
+            /* Semantic colors - using Adobe red as primary accent */
+            --bg-primary: #1E1E1E;
+            --bg-secondary: #2D2D2D;
+            --bg-elevated: #3D3D3D;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B3B3B3;
+            --text-muted: #6E6E6E;
+            --accent: var(--adobe-red);
+            --accent-hover: var(--adobe-red-dark);
+            --success: var(--adobe-green);
+            --warning: var(--adobe-orange);
+            --danger: var(--adobe-red);
+
+            /* Spacing */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 24px;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--adobe-red);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Timer Card */
+        .timer-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 40px 48px;
+            text-align: center;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.05),
+                0 20px 50px -12px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        /* Interval Selection */
+        .interval-select {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .interval-btn {
+            padding: 8px 16px;
+            border: 2px solid transparent;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+
+        .interval-btn:hover {
+            background: var(--gray-800);
+            color: var(--text-primary);
+        }
+
+        .interval-btn.active {
+            background: var(--adobe-red);
+            border-color: var(--adobe-red);
+            color: white;
+        }
+
+        /* Timer Display */
+        .timer-wrapper {
+            position: relative;
+            margin: 24px 0 32px;
+        }
+
+        .timer-ring {
+            width: 240px;
+            height: 240px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .timer-ring svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .timer-ring-bg {
+            fill: none;
+            stroke: var(--bg-elevated);
+            stroke-width: 8;
+        }
+
+        .timer-ring-progress {
+            fill: none;
+            stroke: var(--adobe-red);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .timer-ring.running .timer-ring-progress {
+            stroke: var(--adobe-green);
+        }
+
+        .timer-ring.finished .timer-ring-progress {
+            stroke: var(--adobe-orange);
+        }
+
+        .timer-ring.paused .timer-ring-progress {
+            stroke: var(--adobe-yellow);
+        }
+
+        .timer-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 56px;
+            font-weight: 300;
+            letter-spacing: -2px;
+            color: var(--text-primary);
+        }
+
+        .target-time {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--adobe-red);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--adobe-red-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--gray-800);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--gray-800);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 24px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 460px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.05),
+                0 25px 50px -12px rgba(0,0,0,0.6);
+        }
+
+        .modal-header {
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .modal-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 120px;
+            padding: 16px;
+            border: 1px solid var(--gray-700);
+            border-radius: var(--radius-md);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 24px;
+            transition: border-color 0.2s;
+        }
+
+        .modal-content textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--adobe-blue);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Work Log */
+        .log-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .log-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .log-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .log-entry {
+            background: var(--bg-secondary);
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            border-left: 3px solid var(--adobe-red);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .log-entry:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .log-entry .time {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .log-entry .duration {
+            display: inline-block;
+            font-size: 12px;
+            color: var(--adobe-green);
+            background: rgba(45, 157, 120, 0.15);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .log-entry .priority {
+            display: inline-block;
+            font-size: 12px;
+            color: var(--adobe-orange);
+            background: rgba(230, 134, 25, 0.15);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .log-entry .work-time {
+            display: inline-block;
+            font-size: 12px;
+            color: var(--adobe-blue);
+            background: rgba(38, 128, 235, 0.15);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .log-entry .content {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .no-logs {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 48px 24px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--gray-800);
+        }
+
+        /* Priority Section */
+        .priority-section {
+            margin-bottom: 32px;
+        }
+
+        .priority-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .priority-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .priority-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-800);
+            border-radius: var(--radius-md);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .priority-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .priority-input:focus {
+            outline: none;
+            border-color: var(--adobe-orange);
+        }
+
+        .priority-display {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(230, 134, 25, 0.1);
+            border: 1px solid var(--adobe-orange);
+            border-radius: var(--radius-md);
+        }
+
+        .priority-display.active {
+            display: flex;
+        }
+
+        .priority-display .priority-text {
+            flex: 1;
+            color: var(--adobe-orange);
+            font-weight: 500;
+        }
+
+        .priority-display .clear-priority {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s;
+        }
+
+        .priority-display .clear-priority:hover {
+            color: var(--text-primary);
+        }
+
+        .priority-input-wrapper.hidden {
+            display: none;
+        }
+
+        .no-logs-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            opacity: 0.3;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .timer-ring.finished .timer-display {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .log-entry {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+            </div>
+            <h1>Focus Timer</h1>
+        </div>
+        <p class="tagline">Stay productive with timed work intervals</p>
+    </div>
+
+    <div class="timer-container">
+        <div class="priority-section">
+            <div class="priority-label">#1 Priority</div>
+            <div class="priority-input-wrapper" id="priorityInputWrapper">
+                <input type="text" class="priority-input" id="priorityInput" placeholder="What's your main focus right now?">
+                <button class="btn btn-secondary" id="setPriorityBtn" style="padding: 12px 20px;">Set</button>
+            </div>
+            <div class="priority-display" id="priorityDisplay">
+                <span class="priority-text" id="priorityText"></span>
+                <button class="clear-priority" id="clearPriorityBtn" title="Clear priority">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="interval-select">
+            <button class="interval-btn" data-minutes="5">5 min</button>
+            <button class="interval-btn" data-minutes="10">10 min</button>
+            <button class="interval-btn active" data-minutes="15">15 min</button>
+            <button class="interval-btn" data-minutes="20">20 min</button>
+            <button class="interval-btn" data-minutes="25">25 min</button>
+            <button class="interval-btn" data-minutes="30">30 min</button>
+        </div>
+
+        <div class="timer-wrapper">
+            <div class="timer-ring" id="timerRing">
+                <svg viewBox="0 0 100 100">
+                    <circle class="timer-ring-bg" cx="50" cy="50" r="45"/>
+                    <circle class="timer-ring-progress" id="timerProgress" cx="50" cy="50" r="45"
+                            stroke-dasharray="283" stroke-dashoffset="0"/>
+                </svg>
+                <div class="timer-content">
+                    <div class="timer-display" id="timerDisplay">15:00</div>
+                    <div class="target-time" id="targetTime">Next: --:--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Start
+            </button>
+            <button class="btn btn-secondary" id="stopBtn" disabled>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                Stop
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Modal -->
+    <div class="modal" id="logModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Session Complete</h2>
+                <p>What did you accomplish during this interval?</p>
+            </div>
+            <textarea id="logInput" placeholder="Describe what you worked on..."></textarea>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="skipLog">Skip</button>
+                <button class="btn btn-primary" id="saveLog">Save Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="log-container">
+        <div class="log-header">
+            <h2>Work Log</h2>
+            <div class="log-actions">
+                <input type="file" id="fileInput" accept=".json">
+                <button class="btn btn-small btn-secondary" id="importBtn">Import</button>
+                <button class="btn btn-small btn-secondary" id="exportBtn">Export</button>
+            </div>
+        </div>
+        <div id="logList">
+            <div class="no-logs">
+                <svg class="no-logs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p>No entries yet</p>
+                <p style="font-size: 13px; margin-top: 4px;">Start a timer to begin tracking your work</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedMinutes = 15;
+        let timerInterval = null;
+        let endTime = null;
+        let startTime = null;
+        let totalDuration = null;
+        let isRunning = false;
+        let isPaused = false;
+        let sessionStartTime = null; // When work session started (for total work time)
+        let totalPausedTime = 0; // Accumulated paused time in ms
+        let pauseStartTime = null; // When pause started
+        let currentPriority = localStorage.getItem('currentPriority') || '';
+
+        // DOM Elements
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timerRing = document.getElementById('timerRing');
+        const timerProgress = document.getElementById('timerProgress');
+        const targetTimeEl = document.getElementById('targetTime');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const logModal = document.getElementById('logModal');
+        const logInput = document.getElementById('logInput');
+        const saveLogBtn = document.getElementById('saveLog');
+        const skipLogBtn = document.getElementById('skipLog');
+        const logList = document.getElementById('logList');
+        const intervalBtns = document.querySelectorAll('.interval-btn');
+
+        // Priority elements
+        const priorityInput = document.getElementById('priorityInput');
+        const priorityInputWrapper = document.getElementById('priorityInputWrapper');
+        const priorityDisplay = document.getElementById('priorityDisplay');
+        const priorityText = document.getElementById('priorityText');
+        const setPriorityBtn = document.getElementById('setPriorityBtn');
+        const clearPriorityBtn = document.getElementById('clearPriorityBtn');
+
+        // Ring circumference
+        const circumference = 2 * Math.PI * 45; // r=45
+
+        // Audio context for notification
+        let audioContext = null;
+
+        function playNotification() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            const playBeep = (freq, delay, duration) => {
+                setTimeout(() => {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + duration);
+                }, delay);
+            };
+
+            playBeep(880, 0, 0.15);
+            playBeep(880, 200, 0.15);
+            playBeep(1100, 400, 0.3);
+        }
+
+        // Calculate next snap time
+        function getNextSnapTime(minutes) {
+            const now = new Date();
+            const currentMinutes = now.getMinutes();
+            let nextSnapMinute = Math.ceil((currentMinutes + 1) / minutes) * minutes;
+
+            const snapTime = new Date(now);
+            snapTime.setMinutes(nextSnapMinute);
+            snapTime.setSeconds(0);
+            snapTime.setMilliseconds(0);
+
+            if (nextSnapMinute >= 60) {
+                snapTime.setHours(snapTime.getHours() + 1);
+                snapTime.setMinutes(nextSnapMinute - 60);
+            }
+
+            return snapTime;
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function formatTimeOfDay(date) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function formatDuration(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m worked`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s worked`;
+            } else {
+                return `${seconds}s worked`;
+            }
+        }
+
+        function updateProgress(remaining) {
+            const progress = remaining / totalDuration;
+            const offset = circumference * (1 - progress);
+            timerProgress.style.strokeDashoffset = offset;
+        }
+
+        function updateDisplay() {
+            if (!isRunning || !endTime) return;
+
+            const now = Date.now();
+            const remaining = endTime - now;
+
+            if (remaining <= 0) {
+                timerComplete();
+                return;
+            }
+
+            timerDisplay.textContent = formatTime(remaining);
+            updateProgress(remaining);
+        }
+
+        function timerComplete() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            isPaused = false;
+
+            timerDisplay.textContent = '00:00';
+            timerRing.classList.remove('running');
+            timerRing.classList.remove('paused');
+            timerRing.classList.add('finished');
+            timerProgress.style.strokeDashoffset = circumference;
+
+            updateControlButtons();
+
+            playNotification();
+
+            setTimeout(() => {
+                timerRing.classList.remove('finished');
+                showLogModal();
+            }, 1500);
+        }
+
+        function showLogModal() {
+            logModal.classList.add('show');
+            logInput.value = '';
+            logInput.focus();
+        }
+
+        function hideLogModal() {
+            logModal.classList.remove('show');
+            // Auto-start next timer interval
+            startTimer();
+        }
+
+        function saveLogEntry(content) {
+            // Calculate total work time (excluding paused time)
+            const totalElapsed = Date.now() - sessionStartTime;
+            const totalWorkTime = totalElapsed - totalPausedTime;
+
+            const entry = {
+                startTime: new Date(sessionStartTime), // Use session start for log
+                endTime: new Date(endTime),
+                duration: selectedMinutes,
+                totalWorkTime: totalWorkTime, // Total actual work time in ms
+                content: content || '(No description)',
+                priority: currentPriority || null
+            };
+
+            const logs = JSON.parse(localStorage.getItem('workLogs') || '[]');
+            logs.unshift(entry);
+            localStorage.setItem('workLogs', JSON.stringify(logs));
+
+            // Reset session tracking for next session
+            sessionStartTime = null;
+            totalPausedTime = 0;
+            pauseStartTime = null;
+
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const logs = JSON.parse(localStorage.getItem('workLogs') || '[]');
+
+            if (logs.length === 0) {
+                logList.innerHTML = `
+                    <div class="no-logs">
+                        <svg class="no-logs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <p>No entries yet</p>
+                        <p style="font-size: 13px; margin-top: 4px;">Start a timer to begin tracking your work</p>
+                    </div>`;
+                return;
+            }
+
+            logList.innerHTML = logs.map(log => {
+                const start = new Date(log.startTime);
+                const end = new Date(log.endTime);
+                const priorityBadge = log.priority ? `<span class="priority">${escapeHtml(log.priority)}</span>` : '';
+                const workTimeBadge = log.totalWorkTime ? `<span class="work-time">${formatDuration(log.totalWorkTime)}</span>` : '';
+                return `
+                    <div class="log-entry">
+                        <div class="time">${start.toLocaleDateString()} ${formatTimeOfDay(start)} → ${formatTimeOfDay(end)}</div>
+                        <div class="duration">${log.duration} min</div>${workTimeBadge}${priorityBadge}
+                        <div class="content">${escapeHtml(log.content)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            endTime = getNextSnapTime(selectedMinutes).getTime();
+            totalDuration = endTime - startTime;
+
+            // Track session start for total work time (only on first start, not resume)
+            if (!sessionStartTime) {
+                sessionStartTime = Date.now();
+                totalPausedTime = 0;
+            }
+
+            targetTimeEl.textContent = `Ends at ${formatTimeOfDay(new Date(endTime))}`;
+
+            isRunning = true;
+            isPaused = false;
+            timerRing.classList.add('running');
+
+            updateControlButtons();
+
+            updateDisplay();
+            timerInterval = setInterval(updateDisplay, 100);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            isPaused = true;
+            pauseStartTime = Date.now();
+
+            timerRing.classList.remove('running');
+            timerRing.classList.add('paused');
+            targetTimeEl.textContent = 'Paused';
+
+            updateControlButtons();
+        }
+
+        function resumeTimer() {
+            // Calculate how long we were paused
+            if (pauseStartTime) {
+                totalPausedTime += Date.now() - pauseStartTime;
+                pauseStartTime = null;
+            }
+
+            // Recalculate end time based on new snap time
+            startTime = Date.now();
+            endTime = getNextSnapTime(selectedMinutes).getTime();
+            totalDuration = endTime - startTime;
+
+            targetTimeEl.textContent = `Ends at ${formatTimeOfDay(new Date(endTime))}`;
+
+            isRunning = true;
+            isPaused = false;
+            timerRing.classList.remove('paused');
+            timerRing.classList.add('running');
+
+            updateControlButtons();
+
+            updateDisplay();
+            timerInterval = setInterval(updateDisplay, 100);
+        }
+
+        function updateControlButtons() {
+            if (isRunning) {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                    Pause
+                `;
+            } else if (isPaused) {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Resume
+                `;
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                stopBtn.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                    Pause
+                `;
+            }
+        }
+
+        function togglePauseResume() {
+            if (isRunning) {
+                pauseTimer();
+            } else if (isPaused) {
+                resumeTimer();
+            }
+        }
+
+        function selectInterval(minutes) {
+            selectedMinutes = minutes;
+            intervalBtns.forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+            });
+
+            if (!isRunning) {
+                timerDisplay.textContent = formatTime(minutes * 60 * 1000);
+            }
+        }
+
+        // Event Listeners
+        startBtn.addEventListener('click', startTimer);
+        stopBtn.addEventListener('click', togglePauseResume);
+
+        intervalBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!isRunning) {
+                    selectInterval(parseInt(btn.dataset.minutes));
+                }
+            });
+        });
+
+        saveLogBtn.addEventListener('click', () => {
+            saveLogEntry(logInput.value.trim());
+            hideLogModal();
+        });
+
+        skipLogBtn.addEventListener('click', () => {
+            saveLogEntry('');
+            hideLogModal();
+        });
+
+        logInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveLogEntry(logInput.value.trim());
+                hideLogModal();
+            }
+        });
+
+        // Export/Import functionality
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        function exportLogs() {
+            const logs = JSON.parse(localStorage.getItem('workLogs') || '[]');
+            const dataStr = JSON.stringify(logs, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `work-logs-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importLogs(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedLogs = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedLogs)) {
+                        alert('Invalid file format. Expected an array of log entries.');
+                        return;
+                    }
+
+                    const existingLogs = JSON.parse(localStorage.getItem('workLogs') || '[]');
+                    const existingTimes = new Set(existingLogs.map(l => new Date(l.endTime).getTime()));
+
+                    const newLogs = importedLogs.filter(log =>
+                        !existingTimes.has(new Date(log.endTime).getTime())
+                    );
+
+                    const merged = [...existingLogs, ...newLogs].sort((a, b) =>
+                        new Date(b.endTime) - new Date(a.endTime)
+                    );
+
+                    localStorage.setItem('workLogs', JSON.stringify(merged));
+                    renderLogs();
+
+                    alert(`Imported ${newLogs.length} new entries. ${importedLogs.length - newLogs.length} duplicates skipped.`);
+                } catch (err) {
+                    alert('Error reading file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        exportBtn.addEventListener('click', exportLogs);
+        importBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                importLogs(e.target.files[0]);
+                e.target.value = '';
+            }
+        });
+
+        // Priority functions
+        function setPriority(priority) {
+            currentPriority = priority.trim();
+            localStorage.setItem('currentPriority', currentPriority);
+            updatePriorityDisplay();
+        }
+
+        function clearPriority() {
+            currentPriority = '';
+            localStorage.removeItem('currentPriority');
+            updatePriorityDisplay();
+        }
+
+        function updatePriorityDisplay() {
+            if (currentPriority) {
+                priorityText.textContent = currentPriority;
+                priorityDisplay.classList.add('active');
+                priorityInputWrapper.classList.add('hidden');
+            } else {
+                priorityDisplay.classList.remove('active');
+                priorityInputWrapper.classList.remove('hidden');
+                priorityInput.value = '';
+            }
+        }
+
+        setPriorityBtn.addEventListener('click', () => {
+            if (priorityInput.value.trim()) {
+                setPriority(priorityInput.value);
+            }
+        });
+
+        priorityInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && priorityInput.value.trim()) {
+                setPriority(priorityInput.value);
+            }
+        });
+
+        clearPriorityBtn.addEventListener('click', clearPriority);
+
+        // Initialize
+        updatePriorityDisplay();
+        renderLogs();
+        timerDisplay.textContent = formatTime(selectedMinutes * 60 * 1000);
+
+        // Auto-start timer on page load
+        startTimer();
+    </script>
+</body>
+</html>
