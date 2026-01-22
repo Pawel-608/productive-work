@@ -903,19 +903,34 @@
             // Build entries with gaps
             const entries = [];
 
-            // Add gap from current session start (or now if not running) to the most recent log entry
+            // Add gap from session start to the most recent log entry (only if not currently in an active interval)
+            // If timer is running or paused, show gap up to when this session started
+            // If timer is stopped, show gap up to now
             if (logs.length > 0) {
                 const mostRecentEnd = new Date(logs[0].endTime).getTime();
-                // Use session start time if we're currently working, otherwise use now
-                const gapEndTime = sessionStartTime || Date.now();
-                const gap = gapEndTime - mostRecentEnd;
-                if (gap > 60000) { // More than 1 minute gap
-                    entries.push({
-                        type: 'gap',
-                        start: mostRecentEnd,
-                        end: gapEndTime,
-                        duration: gap
-                    });
+                // Only show gap if we're not currently working, OR if there was a gap before the current session started
+                if (sessionStartTime) {
+                    // Currently working - show gap from last log end to when this session started
+                    const gap = sessionStartTime - mostRecentEnd;
+                    if (gap > 60000) { // More than 1 minute gap
+                        entries.push({
+                            type: 'gap',
+                            start: mostRecentEnd,
+                            end: sessionStartTime,
+                            duration: gap
+                        });
+                    }
+                } else {
+                    // Not working - show gap from last log end to now
+                    const gap = Date.now() - mostRecentEnd;
+                    if (gap > 60000) { // More than 1 minute gap
+                        entries.push({
+                            type: 'gap',
+                            start: mostRecentEnd,
+                            end: Date.now(),
+                            duration: gap
+                        });
+                    }
                 }
             }
 
