@@ -897,6 +897,8 @@
             logModal.classList.remove('show');
             // Auto-start next timer interval, continuing from previous end time (no gap)
             startTimer(previousEndTime);
+            // Render logs after startTimer so sessionStartTime is set correctly
+            renderLogs();
         }
 
         function saveLogEntry(content) {
@@ -923,16 +925,10 @@
             localStorage.setItem('workLogs', JSON.stringify(logs));
 
             // Reset session tracking for next session
-            // Set sessionStartTime to the end time for continuous work (renderLogs will use this)
-            sessionStartTime = savedEndTime;
+            sessionStartTime = null;
             totalPausedTime = 0;
             pauseStartTime = null;
             clearSessionState();
-
-            renderLogs();
-
-            // Now reset sessionStartTime so startTimer will set it properly
-            sessionStartTime = null;
 
             return savedEndTime;
         }
