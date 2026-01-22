@@ -284,6 +284,38 @@
             justify-content: flex-end;
         }
 
+        /* Rating Selector */
+        .rating-selector {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .rating-btn {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--gray-700);
+            border-radius: var(--radius-md);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .rating-btn:hover {
+            border-color: var(--adobe-blue);
+            color: var(--text-primary);
+        }
+
+        .rating-btn.selected {
+            border-color: var(--adobe-blue);
+            background: var(--adobe-blue);
+            color: white;
+        }
+
         /* Work Log */
         .log-container {
             width: 100%;
@@ -355,6 +387,18 @@
             font-size: 12px;
             color: var(--adobe-orange);
             background: rgba(230, 134, 25, 0.15);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .log-entry .rating {
+            display: inline-block;
+            font-size: 12px;
+            color: var(--adobe-purple);
+            background: rgba(146, 86, 217, 0.15);
             padding: 2px 8px;
             border-radius: var(--radius-sm);
             margin-bottom: 12px;
@@ -584,9 +628,17 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Session Complete</h2>
-                <p>What did you accomplish during this interval?</p>
+                <p>How productive were you? (0-5)</p>
             </div>
-            <textarea id="logInput" placeholder="Describe what you worked on..."></textarea>
+            <div class="rating-selector" id="ratingSelector">
+                <button class="rating-btn" data-rating="0">0</button>
+                <button class="rating-btn" data-rating="1">1</button>
+                <button class="rating-btn" data-rating="2">2</button>
+                <button class="rating-btn" data-rating="3">3</button>
+                <button class="rating-btn" data-rating="4">4</button>
+                <button class="rating-btn" data-rating="5">5</button>
+            </div>
+            <textarea id="logInput" placeholder="What did you work on? (optional)"></textarea>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="skipLog">Skip</button>
                 <button class="btn btn-primary" id="saveLog">Save Entry</button>
@@ -627,6 +679,7 @@
         let totalPausedTime = 0; // Accumulated paused time in ms
         let pauseStartTime = null; // When pause started
         let currentPriority = localStorage.getItem('currentPriority') || '';
+        let selectedRating = null;
 
         // DOM Elements
         const timerDisplay = document.getElementById('timerDisplay');
@@ -640,6 +693,8 @@
         const saveLogBtn = document.getElementById('saveLog');
         const skipLogBtn = document.getElementById('skipLog');
         const logList = document.getElementById('logList');
+        const ratingSelector = document.getElementById('ratingSelector');
+        const ratingBtns = document.querySelectorAll('.rating-btn');
 
         // Priority elements
         const priorityInput = document.getElementById('priorityInput');
@@ -836,13 +891,14 @@
         function showLogModal() {
             logModal.classList.add('show');
             logInput.value = '';
-            logInput.focus();
+            selectedRating = null;
+            ratingBtns.forEach(btn => btn.classList.remove('selected'));
         }
 
-        function hideLogModal() {
+        function hideLogModal(previousEndTime) {
             logModal.classList.remove('show');
-            // Auto-start next timer interval
-            startTimer();
+            // Auto-start next timer interval, continuing from previous end time (no gap)
+            startTimer(previousEndTime);
         }
 
         function saveLogEntry(content) {
@@ -851,11 +907,15 @@
             const maxWorkTime = selectedMinutes * 60 * 1000; // 15 minutes max
             const totalWorkTime = Math.min(totalElapsed - totalPausedTime, maxWorkTime);
 
+            // Save end time before resetting (for continuous work tracking)
+            const savedEndTime = endTime;
+
             const entry = {
                 startTime: new Date(sessionStartTime), // Use session start for log
                 endTime: new Date(endTime),
                 duration: selectedMinutes,
                 totalWorkTime: totalWorkTime, // Total actual work time in ms
+                rating: selectedRating,
                 content: content || '(No description)',
                 priority: currentPriority || null
             };
@@ -871,6 +931,8 @@
             clearSessionState();
 
             renderLogs();
+
+            return savedEndTime;
         }
 
         function formatGapDuration(ms) {
@@ -974,12 +1036,13 @@
                     const log = entry.log;
                     const start = new Date(log.startTime);
                     const end = new Date(log.endTime);
+                    const ratingBadge = log.rating !== null && log.rating !== undefined ? `<span class="rating">${log.rating}/5</span>` : '';
                     const priorityBadge = log.priority ? `<span class="priority">${escapeHtml(log.priority)}</span>` : '';
                     const workTimeBadge = log.totalWorkTime ? `<span class="work-time">${formatDuration(log.totalWorkTime)}</span>` : '';
                     return `
                         <div class="log-entry">
                             <div class="time">${start.toLocaleDateString()} ${formatTimeOfDay(start)} → ${formatTimeOfDay(end)}</div>
-                            <div class="duration">${log.duration} min</div>${workTimeBadge}${priorityBadge}
+                            <div class="duration">${log.duration} min</div>${ratingBadge}${workTimeBadge}${priorityBadge}
                             <div class="content">${escapeHtml(log.content)}</div>
                         </div>
                     `;
@@ -993,7 +1056,7 @@
             return div.innerHTML;
         }
 
-        function startTimer() {
+        function startTimer(continuousSessionStart = null) {
             startTime = Date.now();
             endTime = getNextSnapTime(selectedMinutes).getTime();
             // Always use fixed 15 min for progress bar display
@@ -1001,7 +1064,8 @@
 
             // Track session start for total work time (only on first start, not resume)
             if (!sessionStartTime) {
-                sessionStartTime = Date.now();
+                // Use provided start time for continuous work (no gap between intervals)
+                sessionStartTime = continuousSessionStart || Date.now();
                 totalPausedTime = 0;
             }
 
@@ -1103,21 +1167,30 @@
         stopBtn.addEventListener('click', togglePauseResume);
 
         saveLogBtn.addEventListener('click', () => {
-            saveLogEntry(logInput.value.trim());
-            hideLogModal();
+            const previousEndTime = saveLogEntry(logInput.value.trim());
+            hideLogModal(previousEndTime);
         });
 
         skipLogBtn.addEventListener('click', () => {
-            saveLogEntry('');
-            hideLogModal();
+            const previousEndTime = saveLogEntry('');
+            hideLogModal(previousEndTime);
         });
 
         logInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                saveLogEntry(logInput.value.trim());
-                hideLogModal();
+                const previousEndTime = saveLogEntry(logInput.value.trim());
+                hideLogModal(previousEndTime);
             }
+        });
+
+        // Rating button event listeners
+        ratingBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                ratingBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedRating = parseInt(btn.dataset.rating);
+            });
         });
 
         // Export/Import functionality
