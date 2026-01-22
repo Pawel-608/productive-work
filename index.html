@@ -76,46 +76,6 @@
             line-height: 1.5;
         }
 
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--adobe-red);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-icon svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .tagline {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
         /* Timer Card */
         .timer-container {
             background: var(--bg-secondary);
@@ -128,39 +88,6 @@
             margin-bottom: 40px;
             width: 100%;
             max-width: 480px;
-        }
-
-        /* Interval Selection */
-        .interval-select {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-
-        .interval-btn {
-            padding: 8px 16px;
-            border: 2px solid transparent;
-            background: var(--bg-elevated);
-            color: var(--text-secondary);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: inherit;
-            transition: all 0.15s ease;
-        }
-
-        .interval-btn:hover {
-            background: var(--gray-800);
-            color: var(--text-primary);
-        }
-
-        .interval-btn.active {
-            background: var(--adobe-red);
-            border-color: var(--adobe-red);
-            color: white;
         }
 
         /* Timer Display */
@@ -461,6 +388,40 @@
             border: 1px dashed var(--gray-800);
         }
 
+        /* Gap entries */
+        .gap-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            margin: 4px 0;
+        }
+
+        .gap-line {
+            flex: 1;
+            height: 1px;
+            background: var(--gray-800);
+        }
+
+        .gap-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .gap-duration {
+            font-size: 12px;
+            color: var(--adobe-red);
+            font-weight: 500;
+        }
+
+        .gap-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
         /* Priority Section */
         .priority-section {
             margin-bottom: 32px;
@@ -568,19 +529,6 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-            </div>
-            <h1>Focus Timer</h1>
-        </div>
-        <p class="tagline">Stay productive with timed work intervals</p>
-    </div>
-
     <div class="timer-container">
         <div class="priority-section">
             <div class="priority-label">#1 Priority</div>
@@ -599,14 +547,6 @@
             </div>
         </div>
 
-        <div class="interval-select">
-            <button class="interval-btn" data-minutes="5">5 min</button>
-            <button class="interval-btn" data-minutes="10">10 min</button>
-            <button class="interval-btn active" data-minutes="15">15 min</button>
-            <button class="interval-btn" data-minutes="20">20 min</button>
-            <button class="interval-btn" data-minutes="25">25 min</button>
-            <button class="interval-btn" data-minutes="30">30 min</button>
-        </div>
 
         <div class="timer-wrapper">
             <div class="timer-ring" id="timerRing">
@@ -700,7 +640,6 @@
         const saveLogBtn = document.getElementById('saveLog');
         const skipLogBtn = document.getElementById('skipLog');
         const logList = document.getElementById('logList');
-        const intervalBtns = document.querySelectorAll('.interval-btn');
 
         // Priority elements
         const priorityInput = document.getElementById('priorityInput');
@@ -712,6 +651,45 @@
 
         // Ring circumference
         const circumference = 2 * Math.PI * 45; // r=45
+
+        // Session persistence functions
+        function saveSessionState() {
+            const state = {
+                sessionStartTime,
+                totalPausedTime,
+                pauseStartTime,
+                isPaused,
+                isRunning,
+                endTime,
+                savedAt: Date.now()
+            };
+            localStorage.setItem('currentSession', JSON.stringify(state));
+        }
+
+        function loadSessionState() {
+            const saved = localStorage.getItem('currentSession');
+            if (!saved) return null;
+
+            try {
+                const state = JSON.parse(saved);
+                // Check if session is still valid (not older than 24 hours)
+                if (Date.now() - state.savedAt > 24 * 60 * 60 * 1000) {
+                    clearSessionState();
+                    return null;
+                }
+                return state;
+            } catch (e) {
+                clearSessionState();
+                return null;
+            }
+        }
+
+        function clearSessionState() {
+            localStorage.removeItem('currentSession');
+        }
+
+        // Save session state every 5 seconds
+        setInterval(saveSessionState, 5000);
 
         // Audio context for notification
         let audioContext = null;
@@ -863,8 +841,21 @@
             sessionStartTime = null;
             totalPausedTime = 0;
             pauseStartTime = null;
+            clearSessionState();
 
             renderLogs();
+        }
+
+        function formatGapDuration(ms) {
+            const totalMinutes = Math.floor(ms / 60000);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
         }
 
         function renderLogs() {
@@ -882,18 +873,74 @@
                 return;
             }
 
-            logList.innerHTML = logs.map(log => {
-                const start = new Date(log.startTime);
-                const end = new Date(log.endTime);
-                const priorityBadge = log.priority ? `<span class="priority">${escapeHtml(log.priority)}</span>` : '';
-                const workTimeBadge = log.totalWorkTime ? `<span class="work-time">${formatDuration(log.totalWorkTime)}</span>` : '';
-                return `
-                    <div class="log-entry">
-                        <div class="time">${start.toLocaleDateString()} ${formatTimeOfDay(start)} → ${formatTimeOfDay(end)}</div>
-                        <div class="duration">${log.duration} min</div>${workTimeBadge}${priorityBadge}
-                        <div class="content">${escapeHtml(log.content)}</div>
-                    </div>
-                `;
+            // Build entries with gaps
+            const entries = [];
+            const now = Date.now();
+
+            // Add gap from now to the most recent log entry (if there's a gap > 1 min)
+            if (logs.length > 0) {
+                const mostRecentEnd = new Date(logs[0].endTime).getTime();
+                const gapFromNow = now - mostRecentEnd;
+                if (gapFromNow > 60000) { // More than 1 minute gap
+                    entries.push({
+                        type: 'gap',
+                        start: mostRecentEnd,
+                        end: now,
+                        duration: gapFromNow
+                    });
+                }
+            }
+
+            // Add logs and gaps between them
+            for (let i = 0; i < logs.length; i++) {
+                const log = logs[i];
+                entries.push({ type: 'log', log });
+
+                // Check for gap to next log entry
+                if (i < logs.length - 1) {
+                    const currentStart = new Date(log.startTime).getTime();
+                    const nextEnd = new Date(logs[i + 1].endTime).getTime();
+                    const gap = currentStart - nextEnd;
+
+                    if (gap > 60000) { // More than 1 minute gap
+                        entries.push({
+                            type: 'gap',
+                            start: nextEnd,
+                            end: currentStart,
+                            duration: gap
+                        });
+                    }
+                }
+            }
+
+            logList.innerHTML = entries.map(entry => {
+                if (entry.type === 'gap') {
+                    const start = new Date(entry.start);
+                    const end = new Date(entry.end);
+                    return `
+                        <div class="gap-entry">
+                            <div class="gap-line"></div>
+                            <div class="gap-content">
+                                <span class="gap-duration">${formatGapDuration(entry.duration)} not working</span>
+                                <span class="gap-time">${formatTimeOfDay(start)} → ${formatTimeOfDay(end)}</span>
+                            </div>
+                            <div class="gap-line"></div>
+                        </div>
+                    `;
+                } else {
+                    const log = entry.log;
+                    const start = new Date(log.startTime);
+                    const end = new Date(log.endTime);
+                    const priorityBadge = log.priority ? `<span class="priority">${escapeHtml(log.priority)}</span>` : '';
+                    const workTimeBadge = log.totalWorkTime ? `<span class="work-time">${formatDuration(log.totalWorkTime)}</span>` : '';
+                    return `
+                        <div class="log-entry">
+                            <div class="time">${start.toLocaleDateString()} ${formatTimeOfDay(start)} → ${formatTimeOfDay(end)}</div>
+                            <div class="duration">${log.duration} min</div>${workTimeBadge}${priorityBadge}
+                            <div class="content">${escapeHtml(log.content)}</div>
+                        </div>
+                    `;
+                }
             }).join('');
         }
 
@@ -906,7 +953,8 @@
         function startTimer() {
             startTime = Date.now();
             endTime = getNextSnapTime(selectedMinutes).getTime();
-            totalDuration = endTime - startTime;
+            // Always use fixed 15 min for progress bar display
+            totalDuration = selectedMinutes * 60 * 1000;
 
             // Track session start for total work time (only on first start, not resume)
             if (!sessionStartTime) {
@@ -950,7 +998,8 @@
             // Recalculate end time based on new snap time
             startTime = Date.now();
             endTime = getNextSnapTime(selectedMinutes).getTime();
-            totalDuration = endTime - startTime;
+            // Always use fixed 15 min for progress bar display
+            totalDuration = selectedMinutes * 60 * 1000;
 
             targetTimeEl.textContent = `Ends at ${formatTimeOfDay(new Date(endTime))}`;
 
@@ -1006,28 +1055,9 @@
             }
         }
 
-        function selectInterval(minutes) {
-            selectedMinutes = minutes;
-            intervalBtns.forEach(btn => {
-                btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
-            });
-
-            if (!isRunning) {
-                timerDisplay.textContent = formatTime(minutes * 60 * 1000);
-            }
-        }
-
         // Event Listeners
         startBtn.addEventListener('click', startTimer);
         stopBtn.addEventListener('click', togglePauseResume);
-
-        intervalBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!isRunning) {
-                    selectInterval(parseInt(btn.dataset.minutes));
-                }
-            });
-        });
 
         saveLogBtn.addEventListener('click', () => {
             saveLogEntry(logInput.value.trim());
@@ -1152,8 +1182,33 @@
         renderLogs();
         timerDisplay.textContent = formatTime(selectedMinutes * 60 * 1000);
 
-        // Auto-start timer on page load
-        startTimer();
+        // Restore session state or auto-start timer
+        const savedSession = loadSessionState();
+        if (savedSession && savedSession.sessionStartTime) {
+            // Restore session state
+            sessionStartTime = savedSession.sessionStartTime;
+            totalPausedTime = savedSession.totalPausedTime || 0;
+
+            if (savedSession.isPaused) {
+                // Was paused - add time since save to paused time and stay paused
+                isPaused = true;
+                pauseStartTime = savedSession.pauseStartTime;
+                // Add time elapsed while page was closed to paused time
+                if (pauseStartTime) {
+                    totalPausedTime += Date.now() - savedSession.savedAt;
+                    pauseStartTime = Date.now();
+                }
+                timerRing.classList.add('paused');
+                targetTimeEl.textContent = 'Paused';
+                updateControlButtons();
+            } else {
+                // Was running - resume with new snap time
+                startTimer();
+            }
+        } else {
+            // No saved session - auto-start timer on page load
+            startTimer();
+        }
     </script>
 </body>
 </html>
