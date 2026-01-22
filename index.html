@@ -640,7 +640,6 @@
             </div>
             <textarea id="logInput" placeholder="What did you work on? (optional)"></textarea>
             <div class="modal-buttons">
-                <button class="btn btn-secondary" id="skipLog">Skip</button>
                 <button class="btn btn-primary" id="saveLog">Save Entry</button>
             </div>
         </div>
@@ -691,7 +690,6 @@
         const logModal = document.getElementById('logModal');
         const logInput = document.getElementById('logInput');
         const saveLogBtn = document.getElementById('saveLog');
-        const skipLogBtn = document.getElementById('skipLog');
         const logList = document.getElementById('logList');
         const ratingSelector = document.getElementById('ratingSelector');
         const ratingBtns = document.querySelectorAll('.rating-btn');
@@ -1168,11 +1166,6 @@
 
         saveLogBtn.addEventListener('click', () => {
             const previousEndTime = saveLogEntry(logInput.value.trim());
-            hideLogModal(previousEndTime);
-        });
-
-        skipLogBtn.addEventListener('click', () => {
-            const previousEndTime = saveLogEntry('');
             hideLogModal(previousEndTime);
         });
 
