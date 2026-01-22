@@ -846,9 +846,10 @@
         }
 
         function saveLogEntry(content) {
-            // Calculate total work time (excluding paused time)
+            // Calculate total work time (excluding paused time), capped at interval duration
             const totalElapsed = Date.now() - sessionStartTime;
-            const totalWorkTime = totalElapsed - totalPausedTime;
+            const maxWorkTime = selectedMinutes * 60 * 1000; // 15 minutes max
+            const totalWorkTime = Math.min(totalElapsed - totalPausedTime, maxWorkTime);
 
             const entry = {
                 startTime: new Date(sessionStartTime), // Use session start for log
