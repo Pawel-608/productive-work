@@ -923,12 +923,16 @@
             localStorage.setItem('workLogs', JSON.stringify(logs));
 
             // Reset session tracking for next session
-            sessionStartTime = null;
+            // Set sessionStartTime to the end time for continuous work (renderLogs will use this)
+            sessionStartTime = savedEndTime;
             totalPausedTime = 0;
             pauseStartTime = null;
             clearSessionState();
 
             renderLogs();
+
+            // Now reset sessionStartTime so startTimer will set it properly
+            sessionStartTime = null;
 
             return savedEndTime;
         }
