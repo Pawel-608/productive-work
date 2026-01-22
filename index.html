@@ -901,18 +901,19 @@
 
             // Build entries with gaps
             const entries = [];
-            const now = Date.now();
 
-            // Add gap from now to the most recent log entry (if there's a gap > 1 min)
+            // Add gap from current session start (or now if not running) to the most recent log entry
             if (logs.length > 0) {
                 const mostRecentEnd = new Date(logs[0].endTime).getTime();
-                const gapFromNow = now - mostRecentEnd;
-                if (gapFromNow > 60000) { // More than 1 minute gap
+                // Use session start time if we're currently working, otherwise use now
+                const gapEndTime = sessionStartTime || Date.now();
+                const gap = gapEndTime - mostRecentEnd;
+                if (gap > 60000) { // More than 1 minute gap
                     entries.push({
                         type: 'gap',
                         start: mostRecentEnd,
-                        end: now,
-                        duration: gapFromNow
+                        end: gapEndTime,
+                        duration: gap
                     });
                 }
             }
@@ -1202,6 +1203,16 @@
         });
 
         clearPriorityBtn.addEventListener('click', clearPriority);
+
+        // Handle visibility change (tab switching)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                // Tab became visible - update display immediately
+                if (isRunning) {
+                    updateDisplay();
+                }
+            }
+        });
 
         // Initialize
         updatePriorityDisplay();
